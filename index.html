@@ -141,6 +141,7 @@ class GameScene extends Phaser.Scene
     gameOver = false;
     scoreText;
     mousePressed;
+    pick_count = 24;
 
     constructor ()
     {
@@ -150,6 +151,7 @@ class GameScene extends Phaser.Scene
     preload()
     {
         this.load.image('wall0', 'assets/itch.io/16x16-dungeon-tileset/wall0.png');
+        this.load.image('pick', 'assets/itch.io/16x16-dungeon-tileset/pick.png');
 
         this.load.spritesheet('button0', 'assets/itch.io/buttons-pixelart/play-button.png', { frameWidth: 230, frameHeight: 208 });
     }
@@ -198,24 +200,40 @@ class GameScene extends Phaser.Scene
                 let wall = this.add.sprite(x, y, 'wall0').setOrigin(0).setInteractive();
                 wall.displayHeight = this.TILE_SIZE;
                 wall.displayWidth = this.TILE_SIZE;
+                wall.data = { row: row, column: col };
+
                 wall.on('pointerdown', function (pointer) {
                     this.scene.traces.forEach(function (item, index, array) {
                         item.setTint(0xffffff);
                     });
 
                     this.scene.mousePressed = true;
-                    this.scene.traces = [this];
+                    this.scene.traces = [];
+                    //this.scene.pick_count_text.setText(this.scene.pick_count - this.scene.traces.length);
                    
                     this.setTint(0xff0000);
                 });
-                wall.on('pointerover', function (pointer) {
-                    if(this.scene.mousePressed === true) {
-                        this.setTint(0xff0000);
-                    }
-                    let last = this.scene.traces[this.scene.traces.length - 1];
-                    
 
-                    this.scene.traces.push(this);
+                wall.on('pointerover', function (pointer) {
+                    if(this.scene.pick_count <= this.scene.traces.length) {
+                        return;
+                    }
+
+                    if(this.scene.traces.length === 0) {
+                        this.scene.traces.push(this);
+                    } 
+                    else {
+                        let last = this.scene.traces[this.scene.traces.length - 1];
+
+                        if(last != this && this.scene.mousePressed === true) {
+                            if(Math.abs(this.data.row - last.data.row) <= 1 && Math.abs(this.data.column - last.data.column) <= 1) {
+                                this.scene.traces.push(this);
+                                this.setTint(0xff0000);
+                            }    
+                        }
+                    }
+
+                    this.scene.pick_count_text.setText(this.scene.pick_count - this.scene.traces.length);
                 });
 
                 this.walls.push(wall);
@@ -226,7 +244,19 @@ class GameScene extends Phaser.Scene
         //this.input.on('pointerdown', this.onMouseDown);
         //this.input.on('pointermove', this.onMouseMove);
         this.input.on('pointerup', function() { this.scene.mousePressed = false;});
+        this.input.on('pointermove', function(pointer) { 
+            if(this.scene.mousePressed === true) {
+                console.log(pointer.x, pointer.y);
+            }
+        });
         this.add.text(0, 0, '00:00:00', {fontFamily: 'font0', fontSize: '50px', fill: '#ffffff'});
+        this.pick_count_text = this.add.text(this.sizer.width, 0, this.pick_count, {fontFamily: 'font0', fontSize: '50px', fill: '#000000'});
+        this.pick_count_text.setOrigin(1, 0);
+
+        const pick = this.add.image(0, 0, 'pick').setOrigin(1, 0);
+        pick.setScale(3);
+        pick.setPosition(this.sizer.width - pick.displayWidth - 50, 0);
+
 
         // button
         {
@@ -256,6 +286,7 @@ class GameScene extends Phaser.Scene
                         item.setTint(0xffffff);                        
                     });
                     this.scene.traces = [];
+                    this.scene.pick_count_text.setText(this.scene.pick_count - this.scene.traces.length);
                 } 
                 else {
                     this.anims.play('pressed');
