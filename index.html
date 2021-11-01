@@ -154,6 +154,7 @@ class GameScene extends Phaser.Scene
         this.load.image('pick', 'assets/itch.io/16x16-dungeon-tileset/pick.png');
 
         this.load.spritesheet('button0', 'assets/itch.io/buttons-pixelart/play-button.png', { frameWidth: 230, frameHeight: 208 });
+        this.load.spritesheet('girl0', 'assets/itch.io/red-hood-character/red hood itch free Copy-Sheet.png', { frameWidth: 112, frameHeight: 133 });
     }
 
     create ()
@@ -241,7 +242,14 @@ class GameScene extends Phaser.Scene
         }
 
         //this.input.dragDistanceThreshold = 16;
-        //this.input.on('pointerdown', this.onMouseDown);
+        this.input.on('pointerdown', function(pointer) {
+           this.scene.traces.forEach(function (item, index, array) {
+                item.setTint(0xffffff);
+            });
+            this.scene.traces = [];
+            this.scene.pick_count_text.setText(this.scene.pick_count);
+
+        });
         //this.input.on('pointermove', this.onMouseMove);
         this.input.on('pointerup', function() { this.scene.mousePressed = false;});
         this.input.on('pointermove', function(pointer) { 
@@ -256,7 +264,6 @@ class GameScene extends Phaser.Scene
         const pick = this.add.image(0, 0, 'pick').setOrigin(1, 0);
         pick.setScale(3);
         pick.setPosition(this.sizer.width - pick.displayWidth - 50, 0);
-
 
         // button
         {
@@ -295,6 +302,21 @@ class GameScene extends Phaser.Scene
             });
             button.anims.play('idle', true);
         }
+
+        // girl
+        {
+            this.anims.create({
+                key: 'girl-idle',
+                frames: this.anims.generateFrameNumbers('girl0', { start: 0, end: 23 }),
+                frameRate: 30,
+                repeat: -1
+            });
+            let girl = this.add.sprite(0, 0, 'girl0').setOrigin(0, 0.4);
+            girl.setScale(2);
+            girl.setPosition(300, 0);
+            girl.anims.play('girl-idle', true);
+        }
+
 
         /*
         // I can't control line by camera view
