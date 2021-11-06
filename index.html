@@ -25,12 +25,8 @@ class BackgroundScene extends Phaser.Scene
         this.load.image('sky', 'assets/itch.io/free-pixel-art-plataformer-painted-style/Background.png');
         this.load.image('peak0', 'assets/itch.io/free-pixel-art-plataformer-painted-style/peak0.png');
         this.load.image('peak1', 'assets/itch.io/free-pixel-art-plataformer-painted-style/peak1.png');
-        //this.load.atlas('clouds', 'assets/atlas/clouds.png', 'assets/atlas/clouds.json');
-        //this.load.image('sky', 'src/games/firstgame/assets/sky.png');
-        //this.load.image('ground', 'src/games/firstgame/assets/platform.png');
-        //this.load.image('star', 'src/games/firstgame/assets/star.png');
-        //this.load.image('bomb', 'src/games/firstgame/assets/bomb.png');
-        //this.load.spritesheet('dude', 'src/games/firstgame/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+        this.load.image('star', 'assets/star.png');
+        this.load.image('bomb', 'assets/bomb.png');
     }
 
     create ()
@@ -152,6 +148,7 @@ class GameScene extends Phaser.Scene
     nextRemovingTime = 0;
     gem_counter = 0;
     can_counter = 0;
+    reward_images = [];
 
     constructor ()
     {
@@ -320,7 +317,8 @@ class GameScene extends Phaser.Scene
             const y = (this.TILE_ROW_COUNT) * this.TILE_SIZE + button.displayHeight;
             button.setPosition(x, y);
             button.anims.play('idle', true);
-            button.on('pointerdown', function(pointer){
+            button.on('pointerdown', function (pointer) {
+                // reset game
                 if(this.anims.currentAnim.key === 'pressed') {
                     this.anims.play('ready');
                     this.setTint(0xffffff);
@@ -334,6 +332,11 @@ class GameScene extends Phaser.Scene
                     this.scene.timeAtStart = 0;
                     this.scene.time_text.setText('00:00:00');
                     this.scene.pick_count_text.setText(this.scene.pick_count);
+
+                    this.scene.reward_images.forEach(function (item, index, arr) {
+                        item.destroy();
+                    });
+                    this.scene.reward_images = [];
                 } 
                 else {
                     this.anims.play('pressed');
@@ -447,64 +450,66 @@ class GameScene extends Phaser.Scene
             
             this.time_text.setText(hours + ':' + minutes + ':' + seconds);
 
-            if(this.traces.length > 0) {
-                const trace = this.traces[0];
-                this.girl.setPosition(trace.x, trace.y).setOrigin(0.4, 0.5);
+            if (this.traces.length <= 0) {
+                return;
+            }
 
-                let gap = this.nextRemovingTime - time;
+            const trace = this.traces[0];
+            this.girl.setPosition(trace.x, trace.y).setOrigin(0.4, 0.5);
 
-                if(gap <= 0) {
-                    this.nextRemovingTime = time + this.TIME_AT_DESTROY;
+            let gap = this.nextRemovingTime - time;
 
-                    const index = this.traces.indexOf(trace);
-                    if (index > -1) {
-                        this.traces.splice(index, 1);
+            if(gap <= 0) {
+                this.nextRemovingTime = time + this.TIME_AT_DESTROY;
 
-                        if(this.traces.length === 0) {
-                            this.girl.anims.play('girl-idle', true);
-                        }
+                const index = this.traces.indexOf(trace);
+                if (index > -1) {
+                    this.traces.splice(index, 1);
+
+                    if(this.traces.length === 0) {
+                        this.girl.anims.play('girl-idle', true);
                     }
-
-                    // 보상을 받는다
-                    {
-                        let max = -Infinity;
-
-                        Object.keys(this.REWARDS).forEach(([key]) => {
-                            max = Math.max(max, key)
-                        });
-                        const choose = Phaser.Math.Between(0, max);
-                        
-                        for(var key in this.REWARDS) {
-                            if (key < choose) {
-                                if(this.REWARDS.hasOwnProperty(key)) {
-                                    const value = this.REWARDS[key];
-
-                                    if(value) {
-                                        if(value === 'gem') {
-                                            ++this.gem_counter;
-                                            // add image
-                                        }
-                                        else if(value === 'can') {
-                                            ++this.can_counter;
-                                            // add image
-                                        }
-                                        else {
-                                            console.log('not defined reward');
-                                        }
-
-                                    }
-                                    
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    this.REWARDS
-                } else {
-                    gap = Math.max(gap, 0);
-                    trace.setAlpha(gap / this.TIME_AT_DESTROY);
                 }
+
+                // 보상을 받는다
+                {
+                    let max = -Infinity;
+
+                    Object.keys(this.REWARDS).forEach(([key]) => {
+                        max = Math.max(max, key)
+                    });
+                    const choose = Phaser.Math.Between(0, max);
+                        
+                    for(var key in this.REWARDS) {
+                        if (key < choose) {
+                            const value = this.REWARDS[key];
+
+                            if(value) {
+                                if(value === 'gem') {
+                                    ++this.gem_counter;
+
+                                    let image = this.add.image(trace.x, trace.y, 'star').setOrigin(0);
+                                    this.scene.reward_images.push(image);
+                                }
+                                else if(value === 'can') {
+                                    ++this.can_counter;
+                                            
+                                    let image = this.add.image(trace.x, trace.y, 'bomb').setOrigin(0);
+                                    this.scene.reward_images.push(image);
+                                }
+                                else {
+                                    console.log('not defined reward');
+                                }
+
+                            }
+                                    
+                            break;
+                        }
+                    }
+                }
+            } else {
+                gap = Math.max(gap, 0);
+                trace.setAlpha(gap / this.TIME_AT_DESTROY);
             }
         }
     }
