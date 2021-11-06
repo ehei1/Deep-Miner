@@ -146,7 +146,7 @@ class GameScene extends Phaser.Scene
     score = 0;
     gameOver = false;
     scoreText;
-    mousePressed;
+    mousePressed = false;
     pick_count = 24;
     timeAtStart = 0;
     nextRemovingTime = 0;
@@ -220,39 +220,47 @@ class GameScene extends Phaser.Scene
                     }
                     this.scene.traces.forEach(function (item, index, array) {
                         item.setTint(0xff0000);
+                        item.setAlpha(1);
                     });
 
                     this.scene.mousePressed = true;
-                    this.scene.traces = [];
+                    this.scene.traces = [this];
                     
                     this.scene.button.anims.play('ready');
                    
                     this.setTint(0xffffff);
+                    this.scene.pick_count_text.setText(this.scene.pick_count - 1);
                 });
 
                 wall.on('pointerover', function (pointer) {
-                    if(this.tintTopLeft === 0xffffff) { 
-                        return; 
+                    if (this.scene.mousePressed === false) {
+                        return;
                     }
-                    if(this.scene.pick_count <= this.scene.traces.length) {
+                    else if (this.tintTopLeft === 0xffffff) {
+                        return;
+                    }
+                    else if (this.scene.pick_count <= this.scene.traces.length) {
                         return;
                     }
 
-                    if(this.scene.traces.length === 0) {
-                        this.scene.traces.push(this);
-                    } 
-                    else {
-                        let last = this.scene.traces[this.scene.traces.length - 1];
+                    const last = this.scene.traces[this.scene.traces.length - 1];
 
-                        if(last != this && this.scene.mousePressed === true) {
-                            if(Math.abs(this.data.row - last.data.row) <= 1 && Math.abs(this.data.column - last.data.column) <= 1) {
-                                this.scene.traces.push(this);
-                                this.setTint(0xffffff);
-                            }    
+                    if (Math.abs(this.data.row - last.data.row) > 1 || Math.abs(this.data.column - last.data.column) > 1) {
+                        return;
+                    }
+
+                    for (let i = 0; i < this.scene.traces.length; ++i) {
+                        if (this.scene.traces[i] == this) {
+                            return;
                         }
                     }
 
+                    this.scene.traces.push(this);
+                    this.setTint(0xffffff);
                     this.scene.pick_count_text.setText(this.scene.pick_count - this.scene.traces.length);
+                });
+                wall.on('pointerup', function (pointer) {
+                    this.scene.mousePressed = false; 
                 });
 
                 this.walls.push(wall);
@@ -260,6 +268,7 @@ class GameScene extends Phaser.Scene
         }
 
         //this.input.dragDistanceThreshold = 16;
+        /*
         this.input.on('pointerdown', function(pointer) {
             if(this.scene.timeAtStart === 0) {
                 this.scene.walls.forEach(function (item, index, array) {
@@ -269,12 +278,13 @@ class GameScene extends Phaser.Scene
                 this.scene.pick_count_text.setText(this.scene.pick_count); 
             }
         });
-        this.input.on('pointerup', function() { this.scene.mousePressed = false;});
-        this.input.on('pointermove', function(pointer) { 
-            if(this.scene.mousePressed === true) {
-                console.log(pointer.x, pointer.y);
-            }
-        });
+        */
+        //this.input.on('pointerup', function() { this.scene.mousePressed = false;});
+        //this.input.on('pointermove', function(pointer) { 
+        //    if(this.scene.mousePressed === true) {
+        //        console.log(pointer.x, pointer.y);
+        //    }
+        //});
         this.time_text = this.add.text(0, 0, '00:00:00', {fontFamily: 'font0', fontSize: '50px', fill: '#ffffff'});
         // this.time_text = this.add.text(0, 0, '00:00:00', {font: '50px Courier', fill: '#ffffff'});
         this.pick_count_text = this.add.text(this.sizer.width, 0, this.pick_count, {fontFamily: 'font0', fontSize: '50px', fill: '#000000'});
@@ -317,10 +327,13 @@ class GameScene extends Phaser.Scene
 
                     this.scene.walls.forEach(function(item, index, arr) {
                         item.setAlpha(1);
+                        item.setTint(0xff0000);
                     });
 
                     this.scene.girl.anims.play('girl-idle', true).setPosition(300, 0).setOrigin(0, 0.4);
                     this.scene.timeAtStart = 0;
+                    this.scene.time_text.setText('00:00:00');
+                    this.scene.pick_count_text.setText(this.scene.pick_count);
                 } 
                 else {
                     this.anims.play('pressed');
@@ -450,10 +463,6 @@ class GameScene extends Phaser.Scene
                         if(this.traces.length === 0) {
                             this.girl.anims.play('girl-idle', true);
                         }
-                    }
-
-                    if(this.traces.length === 0) {
-                        this.timeAtStart = 0;
                     }
 
                     // 보상을 받는다
