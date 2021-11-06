@@ -126,7 +126,7 @@ class GameScene extends Phaser.Scene
     TILE_SIZE = 640 / 12;
     TIME_AT_DESTROY = 1 * 1000;
     REWARDS = {
-        10 : 'gem',
+        20 : 'gem',
         50 : 'can',
        100 : null,
     };
@@ -473,15 +473,11 @@ class GameScene extends Phaser.Scene
 
                 // 보상을 받는다
                 {
-                    let max = -Infinity;
-
-                    Object.keys(this.REWARDS).forEach(([key]) => {
-                        max = Math.max(max, key)
-                    });
+                    let max = 100;
                     const choose = Phaser.Math.Between(0, max);
                         
                     for(var key in this.REWARDS) {
-                        if (key < choose) {
+                        if (parseInt(key) >= choose) {
                             const value = this.REWARDS[key];
 
                             if(value) {
@@ -489,13 +485,13 @@ class GameScene extends Phaser.Scene
                                     ++this.gem_counter;
 
                                     let image = this.add.image(trace.x, trace.y, 'star').setOrigin(0);
-                                    this.scene.reward_images.push(image);
+                                    this.reward_images.push(image);
                                 }
                                 else if(value === 'can') {
                                     ++this.can_counter;
                                             
                                     let image = this.add.image(trace.x, trace.y, 'bomb').setOrigin(0);
-                                    this.scene.reward_images.push(image);
+                                    this.reward_images.push(image);
                                 }
                                 else {
                                     console.log('not defined reward');
