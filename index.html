@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Deep Miner</title>
     <!--link rel="preload" as="font" href="assets/itch.io/PixelOverload_FontsBasicPack/Baskic8.otf" type="font/wott2"/-->
-    <script src="phaser.min.js"></script>
+    <script src="phaser.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body id='main' background="white">
@@ -152,7 +152,7 @@ class GameScene extends Phaser.Scene
 
     constructor ()
     {
-        super('GameScene');
+        super({ key: 'GameScene', active: true });
     }
 
     preload()
@@ -208,7 +208,7 @@ class GameScene extends Phaser.Scene
                 let wall = this.add.sprite(x, y, 'wall0').setOrigin(0).setInteractive();
                 wall.displayHeight = this.TILE_SIZE;
                 wall.displayWidth = this.TILE_SIZE;
-                wall.data = { row: row, column: col };
+                wall._data = { row: row, column: col };
                 wall.setTint(0xff0000);
 
                 wall.on('pointerdown', function (pointer) {
@@ -242,7 +242,7 @@ class GameScene extends Phaser.Scene
 
                     const last = this.scene.traces[this.scene.traces.length - 1];
 
-                    if (Math.abs(this.data.row - last.data.row) > 1 || Math.abs(this.data.column - last.data.column) > 1) {
+                    if (Math.abs(this._data.row - last._data.row) > 1 || Math.abs(this._data.column - last._data.column) > 1) {
                         return;
                     }
 
@@ -320,6 +320,11 @@ class GameScene extends Phaser.Scene
             button.on('pointerdown', function (pointer) {
                 // reset game
                 if(this.anims.currentAnim.key === 'pressed') {
+                    const resultScene = this.scene.scene.get('ResultScene');
+                    if(resultScene.scene.isVisible() === true) {
+                        return;
+                    }
+                                        
                     this.anims.play('ready');
                     this.setTint(0xffffff);
 
@@ -337,6 +342,8 @@ class GameScene extends Phaser.Scene
                         item.destroy();
                     });
                     this.scene.reward_images = [];
+                    this.scene.gem_counter = 0;
+                    this.scene.can_counter = 0;
                 } 
                 else {
                     this.anims.play('pressed');
@@ -503,6 +510,13 @@ class GameScene extends Phaser.Scene
                         }
                     }
                 }
+
+                if(this.traces.length === 0) {
+                    //this.scene.start('ResultScene', {gem: this.gem_counter, can: this.can_counter});
+                    let data = {gem: this.gem_counter, can: this.can_counter};
+                    let scene = this.scene.get('ResultScene');
+                    scene.setData(data);
+                }
             } else {
                 gap = Math.max(gap, 0);
                 trace.setAlpha(gap / this.TIME_AT_DESTROY);
@@ -510,6 +524,80 @@ class GameScene extends Phaser.Scene
         }
     }
 }
+
+class ResultScene extends Phaser.Scene {
+    gem_text;
+    can_text;
+
+    constructor() {
+        super({ key: 'ResultScene', active: true });
+    }
+
+    preload() {
+        this.load.image('close_button', 'assets/close.png');
+        this.load.image('popup', 'assets/popup.png');
+    }
+
+    create() {
+        //const backgroundScene = this.scene.get("BackgroundScene");
+        //const gameScene = this.scene.get('GameScene');
+        //const backgroundCanvas = backgroundScene.renderer.canvas;
+        //const gameSceneSizer = gameScene.sizer;
+
+        const canvas = this.scene.scene.renderer.canvas;
+        //const centerX = (backgroundCanvas.clientWidth - gameSceneSizer.width) / 2;
+
+        const popup = this.add.image(0, 0, 'popup').setOrigin(0, 0);
+        
+        let wscale = canvas.clientWidth / popup.width;
+        let hscale = canvas.clientHeight / popup.height;
+        let scale = Math.min(wscale, hscale);
+        popup.setScale(scale / 2);
+        let centerX = (canvas.clientWidth - popup.displayWidth) / 2;
+        let centerY = (canvas.clientHeight - popup.displayHeight) / 2;
+        popup.setPosition(centerX, centerY);
+        
+        centerX = canvas.clientWidth / 2 - popup.displayWidth / 7;
+        centerY = canvas.clientHeight / 2;
+        this.add.image(centerX, centerY - 100, "star").setOrigin(0);
+        this.add.image(centerX, centerY, "bomb").setOrigin(0);
+
+        this.gem_text = this.add.text(centerX + 50, centerY - 100, "0", {fontFamily: 'font0', fontSize: '20px', fill: '#ffffff'});
+        this.can_text = this.add.text(centerX + 50, centerY, "0", {fontFamily: 'font0', fontSize: '20px', fill: '#ffffff'});
+
+        const button = this.add.sprite(centerX, 500, 'close_button').setOrigin(0).setInteractive();
+        wscale = canvas.clientWidth / button.width;
+        hscale = canvas.clientHeight / button.height;
+        scale = Math.min(wscale, hscale);
+        button.setScale(scale / 10);
+        centerX = (canvas.clientWidth - button.displayWidth) / 2;
+        centerY = (canvas.clientHeight - popup.displayHeight) / 2;
+        const buttonY = centerY + popup.displayHeight - 70;
+
+        button.setPosition(centerX, buttonY);
+        button.on('pointerdown', function(pointer) {
+            //this.scene.setActive(false);
+            this.scene.scene.setVisible(false);
+            
+            const scene = this.scene.scene.get('GameScene');
+            scene.scene.bringToTop();
+        });
+        this.button = button;
+
+        //this.scene.setActive(false);
+        this.scene.setVisible(false);
+    }
+
+    setData(result) {
+        this.scene.bringToTop();
+        //this.scene.setActive(true);
+        this.scene.setVisible(true);
+
+        this.gem_text.setText(result.gem);
+        this.can_text.setText(result.can);
+    }
+}
+
 
 const config = {
     type: Phaser.AUTO,
@@ -529,7 +617,7 @@ const config = {
             height: '100%'
         }
     },
-    scene: [ BackgroundScene, GameScene ],
+    scene: [ BackgroundScene, ResultScene, GameScene ],
     physics: {
         default: 'arcade',
         arcade: {
