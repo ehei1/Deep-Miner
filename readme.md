@@ -1,5 +1,7 @@
 Deep Miner
 
+Simple game by Phaser 3
+
 * asset from
   * red hooded
     * https://legnops.itch.io/red-hood-character
